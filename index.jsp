@@ -1,8 +1,14 @@
-<style>
-body { font-family: Arial; background:#f2f2f2; text-align:center; }
-form { background:white; padding:20px; margin:20px auto; width:300px; }
-button { padding:10px; background:#007bff; color:white; border:none; }
-</style>
-<%
-response.sendRedirect("login.jsp");
-%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <%
+    response.sendRedirect("login.jsp");
+    %>
+</body>
+</html>

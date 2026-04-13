@@ -1,10 +1,11 @@
 package controller;
 
-import dao.DBConnection;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import dao.IssueDAO;
+import model.Issue;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Date;
 
 public class IssueServlet extends HttpServlet {
 
@@ -12,33 +13,13 @@ public class IssueServlet extends HttpServlet {
             throws ServletException, IOException {
 
         try {
-            int studentId = Integer.parseInt(req.getParameter("student_id"));
-            int bookId = Integer.parseInt(req.getParameter("book_id"));
-            String issueDate = req.getParameter("issue_date");
+            Issue issue = new Issue();
+            issue.setStudentId(Integer.parseInt(req.getParameter("student_id")));
+            issue.setBookId(Integer.parseInt(req.getParameter("book_id")));
+            issue.setIssueDate(Date.valueOf(req.getParameter("issue_date")));
 
-            Connection con = DBConnection.getConnection();
-
-            PreparedStatement ps = con.prepareStatement(
-                "INSERT INTO issue(student_id, book_id, issue_date, due_date) VALUES (?, ?, ?, DATE_ADD(?, INTERVAL 7 DAY))",
-                Statement.RETURN_GENERATED_KEYS
-            );
-
-            ps.setInt(1, studentId);
-            ps.setInt(2, bookId);
-            ps.setString(3, issueDate);
-            ps.setString(4, issueDate);
-
-            ps.executeUpdate();
-
-            ResultSet rs = ps.getGeneratedKeys();
-            int issueId = 0;
-
-            if (rs.next()) {
-                issueId = rs.getInt(1);
-            }
-
+            int issueId = IssueDAO.issueBook(issue);
             res.sendRedirect("issueBook.jsp?issueId=" + issueId);
-
         } catch(Exception e){
             e.printStackTrace();
         }

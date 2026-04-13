@@ -1,8 +1,8 @@
 package controller;
 
 import dao.DBConnection;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.*;
 
@@ -17,6 +17,16 @@ public class LoginServlet extends HttpServlet {
         try {
             Connection con = DBConnection.getConnection();
 
+            // If database is not available, use demo credentials
+            if (con == null) {
+                if ("admin".equals(user) && "admin".equals(pass)) {
+                    res.sendRedirect("dashboard.jsp");
+                } else {
+                    res.getWriter().println("<h3 style='color:red; text-align:center; margin-top:50px;'>Invalid Login Credentials!</h3>");
+                }
+                return;
+            }
+
             PreparedStatement ps = con.prepareStatement(
                 "SELECT * FROM admin WHERE admin_id=? AND password=?"
             );
@@ -29,10 +39,11 @@ public class LoginServlet extends HttpServlet {
             if(rs.next()){
                 res.sendRedirect("dashboard.jsp");
             } else {
-                res.getWriter().println("Invalid Login");
+                res.getWriter().println("<h3 style='color:red; text-align:center; margin-top:50px;'>Invalid Login Credentials!</h3>");
             }
 
         } catch(Exception e){
+            res.getWriter().println("<h3 style='color:red; text-align:center; margin-top:50px;'>Login Error: " + e.getMessage() + "</h3>");
             e.printStackTrace();
         }
     }

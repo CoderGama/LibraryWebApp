@@ -1,17 +1,17 @@
 package controller;
 
-import dao.DBConnection;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import dao.IssueDAO;
+import model.Issue;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Date;
 
 public class ReturnServlet extends HttpServlet {
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
 
-        // FIX: Proper encoding (solves ₹ issue)
         res.setContentType("text/html;charset=UTF-8");
         res.setCharacterEncoding("UTF-8");
 
@@ -19,66 +19,34 @@ public class ReturnServlet extends HttpServlet {
             int issueId = Integer.parseInt(req.getParameter("issue_id"));
             String returnDateStr = req.getParameter("return_date");
 
-            System.out.println("Return called");
-            System.out.println("Issue ID: " + issueId);
-            System.out.println("Return Date: " + returnDateStr);
-
-            // Safety check (avoid null/empty crash)
             if (returnDateStr == null || returnDateStr.isEmpty()) {
                 res.getWriter().println("<h3>Please select return date</h3>");
                 return;
             }
 
-            Connection con = DBConnection.getConnection();
+            Date retDate = Date.valueOf(returnDateStr);
+            Date dueDate = IssueDAO.getDueDate(issueId);
 
-            // 1. Get due date
-            PreparedStatement ps1 = con.prepareStatement(
-                "SELECT due_date FROM issue WHERE issue_id=?"
-            );
-            ps1.setInt(1, issueId);
-
-            ResultSet rs = ps1.executeQuery();
-
-            if (!rs.next()) {
+            if (dueDate == null) {
                 res.getWriter().println("<h3>Invalid Issue ID</h3>");
                 return;
             }
 
-            Date dueDate = rs.getDate("due_date");
-            Date retDate = Date.valueOf(returnDateStr);
-
-            System.out.println("Due Date: " + dueDate);
-            System.out.println("Return Date: " + retDate);
-
-            // 2. Calculate fine
             long diff = retDate.getTime() - dueDate.getTime();
             int daysLate = (int)(diff / (1000 * 60 * 60 * 24));
-
             int fine = Math.max(0, daysLate * 10);
 
-            System.out.println("Days Late: " + daysLate);
-            System.out.println("Fine: " + fine);
+            Issue marked = IssueDAO.markAsReturned(issueId, retDate, fine);
 
-            // 3. Update DB
-            PreparedStatement ps2 = con.prepareStatement(
-                "UPDATE issue SET return_date=?, fine=? WHERE issue_id=?"
-            );
-            ps2.setDate(1, retDate);
-            ps2.setInt(2, fine);
-            ps2.setInt(3, issueId);
-
-            int rows = ps2.executeUpdate();
-            System.out.println("Rows updated: " + rows);
-
-            // 4. Output (₹ fixed)
-            res.getWriter().println("<h2>Book Returned Successfully</h2>");
-            res.getWriter().println("<h3>Fine: &#8377;" + fine + "</h3>");
-
-            // Close resources (important)
-            rs.close();
-            ps1.close();
-            ps2.close();
-            con.close();
+            if (marked != null) {
+                res.getWriter().println("<div style='font-family: Arial; text-align: center; margin-top: 50px;'>");
+                res.getWriter().println("<h2 style='color: #667eea;'>Book Returned Successfully</h2>");
+                res.getWriter().println("<h3>Fine: &#8377;" + fine + "</h3>");
+                res.getWriter().println("<br><a href='returnBook.jsp' style='padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; display: inline-block;'>Back to Return Page</a>");
+                res.getWriter().println("</div>");
+            } else {
+                res.getWriter().println("<h3>Failed to return book. Issue ID might be incorrect or already returned.</h3>");
+            }
 
         } catch(Exception e){
             e.printStackTrace();
